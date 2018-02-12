@@ -159,7 +159,7 @@ public class UiUtil {
      * @param context
      * @return
      */
-    public static  int getBottomStatusHeight(Context context){
+    public static  int getVirtualBoardHeight(Context context){
         int totalHeight = getDisplayHeight(context);
 
         int contentHeight = getScreenHeight(context);
