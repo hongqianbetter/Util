@@ -1,9 +1,14 @@
 package net.better.hongqian.util;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Rect;
+import android.os.Build;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Display;
+import android.view.Window;
 import android.view.WindowManager;
 
 import java.lang.reflect.Method;
@@ -12,8 +17,8 @@ import java.lang.reflect.Method;
  * Created by HongQian.Wang on 2018/2/12.
  */
 
-public class UiUtil {
-    public UiUtil() {
+public class UiTool {
+    public UiTool() {
         throw new UnsupportedOperationException("cannot be instantiated");
     }
 
@@ -114,27 +119,47 @@ public class UiUtil {
      * @param context
      * @return
      */
-    public static int getStatusHeight(Context context) {
+    private static int STATUS_BAR_HEIGHT = -1;
 
-        int statusHeight = -1;
-        try {
-            Class<?> clazz = Class.forName("com.android.internal.R$dimen");
-            Object object = clazz.newInstance();
-            int height = Integer.parseInt(clazz.getField("status_bar_height")
-                    .get(object).toString());
-            statusHeight = context.getResources().getDimensionPixelSize(height);
-        } catch (Exception e) {
-            e.printStackTrace();
+    public static int getStatusBarHeight(Activity activity) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && STATUS_BAR_HEIGHT == -1) {
+            try {
+                final Resources res = activity.getResources();
+                // 尝试获取status_bar_height这个属性的Id对应的资源int值
+                int resourceId = res.getIdentifier("status_bar_height", "dimen", "android");
+                if (resourceId <= 0) {
+                    Class<?> clazz = Class.forName("com.android.internal.R$dimen");
+                    Object object = clazz.newInstance();
+                    resourceId = Integer.parseInt(clazz.getField("status_bar_height")
+                            .get(object).toString());
+                }
+
+
+                // 如果拿到了就直接调用获取值
+                if (resourceId > 0)
+                    STATUS_BAR_HEIGHT = res.getDimensionPixelSize(resourceId);
+
+                // 如果还是未拿到
+                if (STATUS_BAR_HEIGHT <= 0) {
+                    // 通过Window拿取
+                    Rect rectangle = new Rect();
+                    Window window = activity.getWindow();
+                    window.getDecorView().getWindowVisibleDisplayFrame(rectangle);
+                    STATUS_BAR_HEIGHT = rectangle.top;
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
-        return statusHeight;
+        return STATUS_BAR_HEIGHT;
     }
 
-
     /**
-     *  获取屏幕原始尺寸高度，包括虚拟功能键高度和屏幕高度
-      */
+     * 获取屏幕原始尺寸高度，包括虚拟功能键高度和屏幕高度
+     */
 
-    public static int getDisplayHeight(Context context){
+    public static int getDisplayHeight(Context context) {
         int dpi = 0;
         WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         Display display = windowManager.getDefaultDisplay();
@@ -144,10 +169,10 @@ public class UiUtil {
         try {
             c = Class.forName("android.view.Display");
             @SuppressWarnings("unchecked")
-            Method method = c.getMethod("getRealMetrics",DisplayMetrics.class);
+            Method method = c.getMethod("getRealMetrics", DisplayMetrics.class);
             method.invoke(display, displayMetrics);
-            dpi=displayMetrics.heightPixels;
-        }catch(Exception e){
+            dpi = displayMetrics.heightPixels;
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return dpi;
@@ -156,14 +181,15 @@ public class UiUtil {
 
     /**
      * 获取 虚拟按键的高度
+     *
      * @param context
      * @return
      */
-    public static  int getVirtualBoardHeight(Context context){
+    public static int getVirtualBoardHeight(Context context) {
         int totalHeight = getDisplayHeight(context);
 
         int contentHeight = getScreenHeight(context);
 
-        return totalHeight  - contentHeight;
+        return totalHeight - contentHeight;
     }
 }
